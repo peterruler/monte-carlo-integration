@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="de">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monte Carlo Integration</title>
+    <script src="./lib/react/react.js"></script>
+    <script src="./lib/react/react-dom.js"></script>
+    <script src="./lib/babel/babel.min.js"></script>
+    <link type="text/css" rel="stylesheet" href="./styles.css?v=0.3" />
+    <link rel="shortcut icon" type="image/x-icon" href="./favicon.ico">
+</head>
+
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        let { render } = ReactDOM;
+        let { Component } = React;
+
+        class MonteCarlo extends Component {
+            constructor(props) {
+                super(props);
+                this.state = { "throws": 10000, "pi": 0 };
+                this.canvas = React.createRef();
+            }
+
+            componentDidMount() {
+                document.querySelector(".throws").value = this.state.throws;
+                document.querySelector(".btn").click();
+            }
+
+            handleChange(event) {
+                this.setState({ "throws": event.target.value });
+            }
+
+            resolvePromise(canvas, context) {
+                let throws = document.querySelector(".throws").value;
+
+                if (throws >= 1000001) {
+                    alert("Der Wert ist grösser >= 1000001 und kann nicht berechnet werden!");
+                    displayLoader("hide");
+                    return false;
+                }
+
+                if (!isNumeric(throws) || throws <= 0) {
+                    alert(`Bitte nur Zahl > 0 eingeben! Eingegeben wurde: ${throws}`);
+                    displayLoader("hide");
+                    return false;
+                }
+
+                return new Promise((resolve) => {
+                    setTimeout(function () {
+                        const pi = monteCarloPi(throws, canvas, context);
+                        resolve(pi);
+                        displayLoader("hide");
+                    }, 200);
+
+                });
+            }
+
+            async calculate() {
+
+                displayLoader("show");
+                const context = this.canvas.current.getContext('2d');
+                clearCanvas(context);
+                context.save();
+                context.fillStyle = "#ffffff";
+                context.setTransform(1, 0, 0, 1, 0, 0);
+                context.clearRect(199, 49, 101, 121);
+                context.restore();
+
+                const pi = await this.resolvePromise(this.canvas.current, context);
+                if (pi) {
+                    this.setState({ pi: "PI = " + pi });
+                    displayLoader("hide");
+                }
+            }
+
+            render() {
+                return (
+                    <div className="App">
+                        <h1>Monte Carlo PI Berechnung</h1>
+                        <div className="wrapper">
+                            <div>
+                                <canvas ref={this.canvas} id="myCanvas" width="300" height="200"></canvas>
+                            </div>
+                            <Loader />
+                            <input className="throws" type="text" name="throws" onChange={(e) => this.handleChange(e)}
+                            />
+                            <button className="btn" onClick={(e) => this.calculate()}
+                            >Berechnen - Wert maximal 1e6</button>
+                            <div className="output" role="">{this.state.pi}</div>
+                            <Footer />
+                        </div>
+                    </div>
+                );
+            }
+        }
+
+        const clearCanvas = (context) => {
+            context.save();
+            context.fillStyle = "#ffffff";
+            context.setTransform(1, 0, 0, 1, 0, 0);
+            context.clearRect(199, 49, 101, 121);
+            context.restore();
+        }
+
+        const monteCarloPi = (n, canvasElem, context) =>
+            4 * range(1, n)
+                .reduce(a => {
+                    const [x, y] = [rnd(), rnd()];
+                    let inCircle = (x * x + y * y) < 1;
+                    let color;
+                    (inCircle) ? color = '#ff0000' : color = '#000';
+                    drawPixel((x * 100) + 200, -1 * (y * 100) + 150, color, context);
+
+                    return inCircle ? a + 1 : a;
+                }, 0) / n;
+
+        const isNumeric = (number) => {
+            return /^\d+$/.test(number);
+        };
+
+        const range = (m, n) =>
+            Array.from({
+                length: Math.floor(n - m) + 1
+            }, (_, i) => m + i);
+
+        const rnd = () => {
+            let arr = new Uint32Array(1);
+            crypto.getRandomValues(arr);
+            let ret = arr[0] * Math.pow(2, -32);
+            return ret;
+        }
+
+        const drawPixel = (x, y, color, context) => {
+            context.beginPath();
+            context.fillStyle = color;
+            context.fillRect(x, y, 1, 1);
+            context.stroke();
+        }
+
+        const displayLoader = (flag) => {
+            let showHide = "hidden"
+            if (flag === "show") {
+                showHide = "visible";
+            }
+            document.querySelector(".loader").style.visibility = showHide;
+        }
+
+        const Loader = () => {
+            return (
+                <div id="loadinggif" className="loader">
+                    <img src="./img/loading.gif" alt="loader" width="64" height="66" />
+                </div>
+            )
+        }
+
+        const Footer = () => {
+            return (
+                <div className="footer">Peter Strössler - © {new Date().getFullYear()},
+                    all rights reserved.
+                </div>
+            )
+        }
+
+        ReactDOM.render(
+            <MonteCarlo />,
+            document.getElementById('root')
+        );
+    </script>
+</body>
+
+</html>
