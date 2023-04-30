@@ -64,11 +64,6 @@
                 displayLoader("show");
                 const context = this.canvas.current.getContext('2d');
                 clearCanvas(context);
-                context.save();
-                context.fillStyle = "#ffffff";
-                context.setTransform(1, 0, 0, 1, 0, 0);
-                context.clearRect(199, 49, 101, 121);
-                context.restore();
 
                 const pi = await this.resolvePromise(this.canvas.current, context);
                 if (pi) {
